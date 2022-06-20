@@ -26,7 +26,7 @@ app.use(fileUpload({
 }));
 
 app.use(cors({
-  origin: '*'
+  origin: 'https://ims-spa.web.app'
 }));
 
 app.get('/', (req, res) => {
