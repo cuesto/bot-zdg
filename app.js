@@ -26,8 +26,8 @@ app.use(fileUpload({
 }));
 
 app.use(cors({
-  //origin: 'http://localhost:8080/'
-  origin: 'https://ims-spa.web.app'
+  origin: '*'
+  //origin: 'https://ims-spa.web.app'
 }));
 
 app.get('/', (req, res) => {
