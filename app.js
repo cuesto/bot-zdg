@@ -4,7 +4,6 @@ const { body, validationResult } = require('express-validator');
 const socketIO = require('socket.io');
 const qrcode = require('qrcode');
 const http = require('http');
-const fs = require('fs');
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
@@ -37,7 +36,7 @@ app.get('/', (req, res) => {
 });
 
 const client = new Client({
-  restartOnAuthFail: true,
+  authStrategy: new LocalAuth({ clientId: 'bot-zdg' }),
   puppeteer: {
     headless: true,
     args: [
@@ -49,75 +48,14 @@ const client = new Client({
       '--no-zygote',
       '--single-process', // <- this one doesn't works in Windows
       '--disable-gpu'
-    ],
-  },
-  authStrategy: new LocalAuth()
-});
-
-client.on('message', msg => {
-  if (msg.body == '!ping') {
-    msg.reply('pong');
-  } else if (msg.body == 'good morning') {
-    msg.reply('selamat pagi');
-  } else if (msg.body == '!groups') {
-    client.getChats().then(chats => {
-      const groups = chats.filter(chat => chat.isGroup);
-
-      if (groups.length == 0) {
-        msg.reply('You have no group yet.');
-      } else {
-        let replyMsg = '*YOUR GROUPS*\n\n';
-        groups.forEach((group, i) => {
-          replyMsg += `ID: ${group.id._serialized}\nName: ${group.name}\n\n`;
-        });
-        replyMsg += '_You can use the group id to send a message to the group._'
-        msg.reply(replyMsg);
-      }
-    });
-  }
-
-  // Downloading media
-  if (msg.hasMedia) {
-    msg.downloadMedia().then(media => {
-      // To better understanding
-      // Please look at the console what data we get
-      console.log(media);
-
-      if (media) {
-        // The folder to store: change as you want!
-        // Create if not exists
-        const mediaPath = './downloaded-media/';
-
-        if (!fs.existsSync(mediaPath)) {
-          fs.mkdirSync(mediaPath);
-        }
-
-        // Get the file extension by mime-type
-        const extension = mime.extension(media.mimetype);
-        
-        // Filename: change as you want! 
-        // I will use the time for this example
-        // Why not use media.filename? Because the value is not certain exists
-        const filename = new Date().getTime();
-
-        const fullFilename = mediaPath + filename + '.' + extension;
-
-        // Save to file
-        try {
-          fs.writeFileSync(fullFilename, media.data, { encoding: 'base64' }); 
-          console.log('File downloaded successfully!', fullFilename);
-        } catch (err) {
-          console.log('Failed to save the file:', err);
-        }
-      }
-    });
+    ]
   }
 });
 
 client.initialize();
 
 // Socket IO
-io.on('connection', function(socket) {
+io.on('connection', function (socket) {
   socket.emit('message', 'Connecting...');
 
 
@@ -140,7 +78,11 @@ io.on('connection', function(socket) {
     console.log('AUTHENTICATED');
   });
 
-  client.on('auth_failure', function(session) {
+  client.on('change_state', state => {
+    console.log('BOT-ZDG Status: ', state );
+  });
+
+  client.on('auth_failure', function (session) {
     socket.emit('message', 'Auth failure, restarting...');
   });
 
@@ -150,12 +92,6 @@ io.on('connection', function(socket) {
     client.initialize();
   });
 });
-
-
-const checkRegisteredNumber = async function(number) {
-  const isRegistered = await client.isRegisteredUser(number);
-  return isRegistered;
-}
 
 // Send message
 app.post('/send-message', [
@@ -175,17 +111,8 @@ app.post('/send-message', [
     });
   }
 
-  const number = phoneNumberFormatter(req.body.number);
+  const number = req.body.number + '@c.us';
   const message = req.body.message;
-
-  const isRegisteredNumber = await checkRegisteredNumber(number);
-
-  if (!isRegisteredNumber) {
-    return res.status(422).json({
-      status: false,
-      message: 'The number is not registered'
-    });
-  }
 
   client.sendMessage(number, message).then(response => {
     res.status(200).json({
@@ -234,9 +161,9 @@ app.post('/send-media', async (req, res) => {
   });
 });
 
-const findGroupByName = async function(name) {
+const findGroupByName = async function (name) {
   const group = await client.getChats().then(chats => {
-    return chats.find(chat => 
+    return chats.find(chat =>
       chat.isGroup && chat.name.toLowerCase() == name.toLowerCase()
     );
   });
@@ -313,19 +240,10 @@ app.post('/clear-message', [
     });
   }
 
-  const number = phoneNumberFormatter(req.body.number);
-
-  const isRegisteredNumber = await checkRegisteredNumber(number);
-
-  if (!isRegisteredNumber) {
-    return res.status(422).json({
-      status: false,
-      message: 'The number is not registered'
-    });
-  }
+  const number = req.body.number + '@c.us';
 
   const chat = await client.getChatById(number);
-  
+
   chat.clearMessages().then(status => {
     res.status(200).json({
       status: true,
@@ -339,6 +257,6 @@ app.post('/clear-message', [
   })
 });
 
-server.listen(port, function() {
+server.listen(port, function () {
   console.log('App running on *: ' + port);
 });
