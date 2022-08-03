@@ -4,7 +4,6 @@ const { body, validationResult } = require('express-validator');
 const socketIO = require('socket.io');
 const qrcode = require('qrcode');
 const http = require('http');
-const fs = require('fs');
 const { phoneNumberFormatter } = require('./helpers/formatter');
 const fileUpload = require('express-fileupload');
 const axios = require('axios');
@@ -37,7 +36,7 @@ app.get('/', (req, res) => {
 });
 
 const client = new Client({
-  restartOnAuthFail: true,
+  authStrategy: new LocalAuth({ clientId: 'bot-zdg' }),
   puppeteer: {
     headless: true,
     args: [
@@ -49,15 +48,14 @@ const client = new Client({
       '--no-zygote',
       '--single-process', // <- this one doesn't works in Windows
       '--disable-gpu'
-    ],
-  },
-  authStrategy: new LocalAuth()
+    ]
+  }
 });
 
 client.initialize();
 
 // Socket IO
-io.on('connection', function(socket) {
+io.on('connection', function (socket) {
   socket.emit('message', 'Connecting...');
 
 
@@ -80,7 +78,11 @@ io.on('connection', function(socket) {
     console.log('AUTHENTICATED');
   });
 
-  client.on('auth_failure', function(session) {
+  client.on('change_state', state => {
+    console.log('BOT-ZDG Status: ', state );
+  });
+
+  client.on('auth_failure', function (session) {
     socket.emit('message', 'Auth failure, restarting...');
   });
 
@@ -90,12 +92,6 @@ io.on('connection', function(socket) {
     client.initialize();
   });
 });
-
-
-const checkRegisteredNumber = async function(number) {
-  const isRegistered = await client.isRegisteredUser(number);
-  return isRegistered;
-}
 
 // Send message
 app.post('/send-message', [
@@ -115,17 +111,8 @@ app.post('/send-message', [
     });
   }
 
-  const number = phoneNumberFormatter(req.body.number);
+  const number = req.body.number + '@c.us';
   const message = req.body.message;
-
-  const isRegisteredNumber = await checkRegisteredNumber(number);
-
-  if (!isRegisteredNumber) {
-    return res.status(422).json({
-      status: false,
-      message: 'The number is not registered'
-    });
-  }
 
   client.sendMessage(number, message).then(response => {
     res.status(200).json({
@@ -174,9 +161,9 @@ app.post('/send-media', async (req, res) => {
   });
 });
 
-const findGroupByName = async function(name) {
+const findGroupByName = async function (name) {
   const group = await client.getChats().then(chats => {
-    return chats.find(chat => 
+    return chats.find(chat =>
       chat.isGroup && chat.name.toLowerCase() == name.toLowerCase()
     );
   });
@@ -253,19 +240,10 @@ app.post('/clear-message', [
     });
   }
 
-  const number = phoneNumberFormatter(req.body.number);
-
-  const isRegisteredNumber = await checkRegisteredNumber(number);
-
-  if (!isRegisteredNumber) {
-    return res.status(422).json({
-      status: false,
-      message: 'The number is not registered'
-    });
-  }
+  const number = req.body.number + '@c.us';
 
   const chat = await client.getChatById(number);
-  
+
   chat.clearMessages().then(status => {
     res.status(200).json({
       status: true,
@@ -279,6 +257,6 @@ app.post('/clear-message', [
   })
 });
 
-server.listen(port, function() {
+server.listen(port, function () {
   console.log('App running on *: ' + port);
 });
