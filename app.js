@@ -36,19 +36,21 @@ app.get('/', (req, res) => {
 });
 
 const client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'bot-zdg' }),
+  authStrategy: new LocalAuth(
+    // { clientId: 'bot-IMS' }
+    ),
   puppeteer: {
     headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process', // <- this one doesn't works in Windows
-      '--disable-gpu'
-    ]
+    // args: [
+    //   '--no-sandbox',
+    //   '--disable-setuid-sandbox',
+    //   '--disable-dev-shm-usage',
+    //   '--disable-accelerated-2d-canvas',
+    //   '--no-first-run',
+    //   '--no-zygote',
+    //   '--single-process', // <- this one doesn't works in Windows
+    //   '--disable-gpu'
+    // ]
   }
 });
 
@@ -71,6 +73,15 @@ io.on('connection', function (socket) {
     socket.emit('ready', 'Whatsapp is ready!');
     socket.emit('message', 'Whatsapp is ready!');
   });
+
+  client.on('message', msg => {
+    console.log(msg.body);
+    if (msg.body == 'ping') {
+        const phoneNumber = '18096019002@c.us'
+        client.sendMessage(phoneNumber, "Hello World")
+    }
+});
+   
 
   client.on('authenticated', () => {
     socket.emit('authenticated', 'Whatsapp is authenticated!');
@@ -111,8 +122,11 @@ app.post('/send-message', [
     });
   }
 
-  const number = req.body.number + '@c.us';
+  const number = '1'+req.body.number+'@c.us';
   const message = req.body.message;
+
+  console.log(number);
+  console.log(message);
 
   client.sendMessage(number, message).then(response => {
     res.status(200).json({
