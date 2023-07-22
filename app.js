@@ -122,7 +122,7 @@ app.post('/send-message', [
     });
   }
 
-  const number = '1'+req.body.number+'@c.us';
+  const number = req.body.number+'@c.us';
   const message = req.body.message;
 
   console.log(number);
