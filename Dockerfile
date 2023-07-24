@@ -10,6 +10,7 @@ COPY package.json ./
 RUN npm i 
 
 COPY . ./
+RUN rm -rf .wwebjs_auth .wwebjs_cache
 
 EXPOSE 8000
 
