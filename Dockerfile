@@ -7,7 +7,12 @@ WORKDIR /app
 
 COPY package.json ./
 
+RUN npm cache clean --force
+
+RUN npm i whatsapp-web.js@1.22.2-alpha.0 
+
 RUN npm i 
+#--production
 
 COPY . ./
 RUN rm -rf .wwebjs_auth .wwebjs_cache

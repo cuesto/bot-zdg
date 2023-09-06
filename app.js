@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 const client = new Client({
   authStrategy: new LocalAuth(
     // { clientId: 'bot-IMS' }
-    ),
+  ),
   puppeteer: {
     headless: true,
     args: [
@@ -77,11 +77,11 @@ io.on('connection', function (socket) {
   client.on('message', msg => {
     console.log(msg.body);
     if (msg.body == 'ping') {
-        const phoneNumber = '18096019002@c.us'
-        client.sendMessage(phoneNumber, "Hello World")
+      const phoneNumber = '18096019002@c.us'
+      client.sendMessage(phoneNumber, "Hello World")
     }
-});
-   
+  });
+
 
   client.on('authenticated', () => {
     socket.emit('authenticated', 'Whatsapp is authenticated!');
@@ -90,7 +90,7 @@ io.on('connection', function (socket) {
   });
 
   client.on('change_state', state => {
-    console.log('BOT-ZDG Status: ', state );
+    console.log('BOT-ZDG Status: ', state);
   });
 
   client.on('auth_failure', function (session) {
@@ -103,6 +103,8 @@ io.on('connection', function (socket) {
     client.initialize();
   });
 });
+
+
 
 // Send message
 app.post('/send-message', [
@@ -122,7 +124,7 @@ app.post('/send-message', [
     });
   }
 
-  const number = req.body.number+'@c.us';
+  const number = req.body.number + '@c.us';
   const message = req.body.message;
 
   console.log(number);

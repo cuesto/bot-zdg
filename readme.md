@@ -22,3 +22,10 @@ Watch the tutorials:
 
 You can make a support for this work by <a href="https://zapdasgalaxias.com.br">Pedrinho da NASA</a>. Thanks
 "# bot-zdg" 
+
+
+## Docker build
+
+docker build -t cuesto/ws-sender-be .
+
+docker push cuesto/ws-sender-be
